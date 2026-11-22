@@ -4,15 +4,19 @@ namespace Game.UI.Core.Examples
 {
     public interface IUpgradeService
     {
+        event Action StateChanged;
         UpgradeViewData GetCurrentState();
         bool TryUpgrade();
     }
+
 
     public class MockUpgradeService : IUpgradeService
     {
         private readonly string _buildingName;
         private int _level = 1;
         private int _gold = 500;
+
+        public event Action StateChanged;
 
         public MockUpgradeService(string buildingName)
         {
@@ -32,6 +36,7 @@ namespace Game.UI.Core.Examples
 
             _gold -= cost;
             _level++;
+            StateChanged?.Invoke();
             return true;
         }
 
@@ -52,6 +57,7 @@ namespace Game.UI.Core.Examples
             _view.OnViewOpened += Refresh;
             _view.OnUpgradeClicked += HandleUpgradeRequest;
             _view.OnCloseClicked += HandleCloseRequest;
+            _service.StateChanged += HandleServiceStateChanged;
 
             if (_view.IsVisible)
             {
@@ -61,7 +67,13 @@ namespace Game.UI.Core.Examples
 
         private void HandleUpgradeRequest()
         {
-            if (_service.TryUpgrade())
+            // Service tự phát StateChanged khi dữ liệu thay đổi, tránh gọi Refresh() trùng lặp.
+            _service.TryUpgrade();
+        }
+
+        private void HandleServiceStateChanged()
+        {
+            if (_view.IsVisible)
             {
                 Refresh();
             }
@@ -84,6 +96,7 @@ namespace Game.UI.Core.Examples
             _view.OnViewOpened -= Refresh;
             _view.OnUpgradeClicked -= HandleUpgradeRequest;
             _view.OnCloseClicked -= HandleCloseRequest;
+            _service.StateChanged -= HandleServiceStateChanged;
 
             _isDisposed = true;
         }

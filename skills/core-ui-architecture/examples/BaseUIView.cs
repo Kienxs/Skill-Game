@@ -38,6 +38,11 @@ namespace Game.UI.Core
             EnsureInitialized();
         }
 
+        protected virtual void OnDestroy()
+        {
+            KillTransitions();
+        }
+
         private void EnsureInitialized()
         {
             if (_isInitialized) return;
@@ -56,6 +61,7 @@ namespace Game.UI.Core
             EnsureInitialized();
             if (IsVisible) return;
 
+            KillTransitions();
             _isVisible = true;
             SetBlocksRaycasts(true);
             OnBeforeShow();
@@ -66,6 +72,8 @@ namespace Game.UI.Core
             }
 
             OnViewOpened?.Invoke();
+            if (this == null || !_isVisible) return;
+
             PlayShowTransition();
         }
 
@@ -74,9 +82,14 @@ namespace Game.UI.Core
             EnsureInitialized();
             if (!IsVisible) return;
 
+            KillTransitions();
             _isVisible = false;
             SetInteractable(false);
             PlayHideTransition(CompleteHide);
+        }
+
+        protected virtual void KillTransitions()
+        {
         }
 
         protected virtual void OnBeforeShow()
@@ -105,10 +118,12 @@ namespace Game.UI.Core
 
         private void CompleteHide()
         {
-            if (_isVisible) return;
+            if (this == null || _isVisible) return;
 
             SetBlocksRaycasts(false);
             OnViewClosed?.Invoke();
+
+            if (this == null || _isVisible) return;
 
             if (gameObject.activeSelf)
             {

@@ -47,24 +47,56 @@ namespace Game.UI.Core.Examples
         protected override void Awake()
         {
             base.Awake();
+
+            if (!ValidateReferences()) return;
+
             btnUpgrade.onClick.AddListener(HandleUpgradeClick);
             btnClose.onClick.AddListener(HandleCloseClick);
         }
 
-        private void OnDestroy()
+        protected override void OnDestroy()
         {
-            btnUpgrade.onClick.RemoveListener(HandleUpgradeClick);
-            btnClose.onClick.RemoveListener(HandleCloseClick);
+            base.OnDestroy();
+
+            if (btnUpgrade != null)
+            {
+                btnUpgrade.onClick.RemoveListener(HandleUpgradeClick);
+            }
+
+            if (btnClose != null)
+            {
+                btnClose.onClick.RemoveListener(HandleCloseClick);
+            }
         }
 
         public void Render(UpgradeViewData data)
         {
-            txtTitle.text = data.BuildingName;
-            txtLevel.text = $"Lv.{data.Level}";
-            txtCost.text = data.UpgradeCost.ToString("N0");
-            txtCost.color = data.CanAfford ? affordableColor : unaffordableColor;
+            if (txtTitle != null) txtTitle.text = data.BuildingName;
+            if (txtLevel != null) txtLevel.text = $"Lv.{data.Level}";
 
-            btnUpgrade.interactable = data.CanAfford;
+            if (txtCost != null)
+            {
+                txtCost.text = data.UpgradeCost.ToString("N0");
+                txtCost.color = data.CanAfford ? affordableColor : unaffordableColor;
+            }
+
+            if (btnUpgrade != null)
+            {
+                btnUpgrade.interactable = data.CanAfford;
+            }
+        }
+
+        private bool ValidateReferences()
+        {
+            bool isValid = true;
+
+            if (txtTitle == null) { Debug.LogError($"[{nameof(SampleUpgradeView)}] Thiếu {nameof(txtTitle)}.", this); isValid = false; }
+            if (txtLevel == null) { Debug.LogError($"[{nameof(SampleUpgradeView)}] Thiếu {nameof(txtLevel)}.", this); isValid = false; }
+            if (txtCost == null) { Debug.LogError($"[{nameof(SampleUpgradeView)}] Thiếu {nameof(txtCost)}.", this); isValid = false; }
+            if (btnUpgrade == null) { Debug.LogError($"[{nameof(SampleUpgradeView)}] Thiếu {nameof(btnUpgrade)}.", this); isValid = false; }
+            if (btnClose == null) { Debug.LogError($"[{nameof(SampleUpgradeView)}] Thiếu {nameof(btnClose)}.", this); isValid = false; }
+
+            return isValid;
         }
 
         private void HandleUpgradeClick() => OnUpgradeClicked?.Invoke();
