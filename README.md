@@ -36,3 +36,19 @@ YourUnityProject/
         ├── core-ui-architecture/
         ├── orientation-landscape/
         └── style-classic-medieval/
+
+Cách 2: Cài đặt dùng chung toàn máy (Global)
+Copy các thư mục skill vào đường dẫn cấu hình global của Antigravity:
+
+Windows: C:\Users\<Tên_User>\.gemini\antigravity\skills\
+
+macOS / Linux: ~/.gemini/antigravity/skills/
+
+Kích hoạt trong Antigravity
+Mở (hoặc reload) cửa sổ làm việc trên Antigravity.
+
+Khi yêu cầu tạo giao diện, agent sẽ tự động đọc và kết hợp các quy tắc từ những skill đã cài đặt.
+
+Bạn cũng có thể gọi đích danh skill trong câu lệnh:
+
+"Dùng @core-ui-architecture và @style-classic-medieval để tạo màn hình Nâng cấp Nhà lính."
