@@ -5,6 +5,25 @@ using UnityEngine.UI;
 
 namespace Game.UI.Core.Examples
 {
+    public readonly struct UpgradeViewData
+    {
+        public readonly string BuildingName;
+        public readonly int Level;
+        public readonly int UpgradeCost;
+        public readonly bool CanAfford;
+
+        public UpgradeViewData(string buildingName, int level, int upgradeCost, bool canAfford)
+        {
+            BuildingName = buildingName;
+            Level = level;
+            UpgradeCost = upgradeCost;
+            CanAfford = canAfford;
+        }
+    }
+
+    /// <summary>
+    /// Mẫu View thuần hiển thị: chỉ nhận dữ liệu để render và phát Action khi người dùng tương tác.
+    /// </summary>
     public class SampleUpgradeView : BaseUIView
     {
         [Header("UI Elements")]
@@ -14,77 +33,37 @@ namespace Game.UI.Core.Examples
         [SerializeField] private Button btnUpgrade;
         [SerializeField] private Button btnClose;
 
+        [Header("Colors")]
+        [SerializeField] private Color affordableColor = Color.white;
+        [SerializeField] private Color unaffordableColor = Color.red;
+
         public event Action OnUpgradeClicked;
         public event Action OnCloseClicked;
 
         protected override void Awake()
         {
             base.Awake();
-            btnUpgrade.onClick.AddListener(() => OnUpgradeClicked?.Invoke());
-            btnClose.onClick.AddListener(() => OnCloseClicked?.Invoke());
+            btnUpgrade.onClick.AddListener(HandleUpgradeClick);
+            btnClose.onClick.AddListener(HandleCloseClick);
         }
 
         private void OnDestroy()
         {
-            btnUpgrade.onClick.RemoveAllListeners();
-            btnClose.onClick.RemoveAllListeners();
+            btnUpgrade.onClick.RemoveListener(HandleUpgradeClick);
+            btnClose.onClick.RemoveListener(HandleCloseClick);
         }
 
-        public void Render(string title, int currentLevel, int upgradeCost, bool canAfford)
+        public void Render(UpgradeViewData data)
         {
-            txtTitle.text = title;
-            txtLevel.text = $"Lv.{currentLevel}";
-            txtCost.text = upgradeCost.ToString("N0");
-            
-            btnUpgrade.interactable = canAfford;
-            txtCost.color = canAfford ? Color.white : Color.red;
-        }
-    }
+            txtTitle.text = data.BuildingName;
+            txtLevel.text = $"Lv.{data.Level}";
+            txtCost.text = data.UpgradeCost.ToString("N0");
+            txtCost.color = data.CanAfford ? affordableColor : unaffordableColor;
 
-    public class SampleUpgradePresenter : IDisposable
-    {
-        private readonly SampleUpgradeView _view;
-        private int _currentLevel = 1;
-        private int _playerGold = 500;
-
-        public SampleUpgradePresenter(SampleUpgradeView view)
-        {
-            _view = view;
-            _view.OnUpgradeClicked += HandleUpgradeRequest;
-            _view.OnCloseClicked += HandleCloseRequest;
-
-            RefreshUI();
+            btnUpgrade.interactable = data.CanAfford;
         }
 
-        private void HandleUpgradeRequest()
-        {
-            int cost = CalculateUpgradeCost(_currentLevel);
-            if (_playerGold < cost) return;
-
-            _playerGold -= cost;
-            _currentLevel++;
-
-            RefreshUI();
-        }
-
-        private void HandleCloseRequest()
-        {
-            _view.Hide();
-        }
-
-        private void RefreshUI()
-        {
-            int nextCost = CalculateUpgradeCost(_currentLevel);
-            bool canAfford = _playerGold >= nextCost;
-            _view.Render("Barracks", _currentLevel, nextCost, canAfford);
-        }
-
-        private int CalculateUpgradeCost(int level) => level * 150;
-
-        public void Dispose()
-        {
-            _view.OnUpgradeClicked -= HandleUpgradeRequest;
-            _view.OnCloseClicked -= HandleCloseRequest;
-        }
+        private void HandleUpgradeClick() => OnUpgradeClicked?.Invoke();
+        private void HandleCloseClick() => OnCloseClicked?.Invoke();
     }
 }
