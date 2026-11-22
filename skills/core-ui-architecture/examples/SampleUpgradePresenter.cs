@@ -1,69 +1,91 @@
 using System;
-using TMPro;
-using UnityEngine;
-using UnityEngine.UI;
 
 namespace Game.UI.Core.Examples
 {
-    public readonly struct UpgradeViewData
+    public interface IUpgradeService
     {
-        public readonly string BuildingName;
-        public readonly int Level;
-        public readonly int UpgradeCost;
-        public readonly bool CanAfford;
-
-        public UpgradeViewData(string buildingName, int level, int upgradeCost, bool canAfford)
-        {
-            BuildingName = buildingName;
-            Level = level;
-            UpgradeCost = upgradeCost;
-            CanAfford = canAfford;
-        }
+        UpgradeViewData GetCurrentState();
+        bool TryUpgrade();
     }
 
-    /// <summary>
-    /// Mẫu View thuần hiển thị: chỉ nhận dữ liệu để render và phát Action khi người dùng tương tác.
-    /// </summary>
-    public class SampleUpgradeView : BaseUIView
+    public class MockUpgradeService : IUpgradeService
     {
-        [Header("UI Elements")]
-        [SerializeField] private TextMeshProUGUI txtTitle;
-        [SerializeField] private TextMeshProUGUI txtLevel;
-        [SerializeField] private TextMeshProUGUI txtCost;
-        [SerializeField] private Button btnUpgrade;
-        [SerializeField] private Button btnClose;
+        private readonly string _buildingName;
+        private int _level = 1;
+        private int _gold = 500;
 
-        [Header("Colors")]
-        [SerializeField] private Color affordableColor = Color.white;
-        [SerializeField] private Color unaffordableColor = Color.red;
-
-        public event Action OnUpgradeClicked;
-        public event Action OnCloseClicked;
-
-        protected override void Awake()
+        public MockUpgradeService(string buildingName)
         {
-            base.Awake();
-            btnUpgrade.onClick.AddListener(HandleUpgradeClick);
-            btnClose.onClick.AddListener(HandleCloseClick);
+            _buildingName = buildingName;
         }
 
-        private void OnDestroy()
+        public UpgradeViewData GetCurrentState()
         {
-            btnUpgrade.onClick.RemoveListener(HandleUpgradeClick);
-            btnClose.onClick.RemoveListener(HandleCloseClick);
+            int cost = GetUpgradeCost();
+            return new UpgradeViewData(_buildingName, _level, cost, _gold >= cost);
         }
 
-        public void Render(UpgradeViewData data)
+        public bool TryUpgrade()
         {
-            txtTitle.text = data.BuildingName;
-            txtLevel.text = $"Lv.{data.Level}";
-            txtCost.text = data.UpgradeCost.ToString("N0");
-            txtCost.color = data.CanAfford ? affordableColor : unaffordableColor;
+            int cost = GetUpgradeCost();
+            if (_gold < cost) return false;
 
-            btnUpgrade.interactable = data.CanAfford;
+            _gold -= cost;
+            _level++;
+            return true;
         }
 
-        private void HandleUpgradeClick() => OnUpgradeClicked?.Invoke();
-        private void HandleCloseClick() => OnCloseClicked?.Invoke();
+        private int GetUpgradeCost() => _level * 150;
+    }
+
+    public class SampleUpgradePresenter : IDisposable
+    {
+        private readonly IUpgradeView _view;
+        private readonly IUpgradeService _service;
+        private bool _isDisposed;
+
+        public SampleUpgradePresenter(IUpgradeView view, IUpgradeService service)
+        {
+            _view = view ?? throw new ArgumentNullException(nameof(view));
+            _service = service ?? throw new ArgumentNullException(nameof(service));
+
+            _view.OnViewOpened += Refresh;
+            _view.OnUpgradeClicked += HandleUpgradeRequest;
+            _view.OnCloseClicked += HandleCloseRequest;
+
+            if (_view.IsVisible)
+            {
+                Refresh();
+            }
+        }
+
+        private void HandleUpgradeRequest()
+        {
+            if (_service.TryUpgrade())
+            {
+                Refresh();
+            }
+        }
+
+        private void HandleCloseRequest()
+        {
+            _view.Hide();
+        }
+
+        private void Refresh()
+        {
+            _view.Render(_service.GetCurrentState());
+        }
+
+        public void Dispose()
+        {
+            if (_isDisposed) return;
+
+            _view.OnViewOpened -= Refresh;
+            _view.OnUpgradeClicked -= HandleUpgradeRequest;
+            _view.OnCloseClicked -= HandleCloseRequest;
+
+            _isDisposed = true;
+        }
     }
 }

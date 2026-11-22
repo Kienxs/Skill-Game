@@ -3,18 +3,35 @@ using UnityEngine;
 
 namespace Game.UI.Core
 {
+    public interface IUIView
+    {
+        bool IsVisible { get; }
+        event Action OnViewOpened;
+        event Action OnViewClosed;
+        void Show();
+        void Hide();
+    }
+
     [RequireComponent(typeof(CanvasGroup))]
-    public abstract class BaseUIView : MonoBehaviour
+    public abstract class BaseUIView : MonoBehaviour, IUIView
     {
         [Header("Base UI Components")]
         [SerializeField] protected CanvasGroup canvasGroup;
 
         private bool _isInitialized;
+        private bool _isVisible;
 
         public event Action OnViewOpened;
         public event Action OnViewClosed;
 
-        public bool IsVisible { get; private set; }
+        public bool IsVisible
+        {
+            get
+            {
+                EnsureInitialized();
+                return _isVisible && gameObject.activeSelf;
+            }
+        }
 
         protected virtual void Awake()
         {
@@ -30,7 +47,7 @@ namespace Game.UI.Core
                 canvasGroup = GetComponent<CanvasGroup>();
             }
 
-            IsVisible = gameObject.activeSelf && canvasGroup != null && canvasGroup.alpha > 0f;
+            _isVisible = gameObject.activeSelf && canvasGroup != null && canvasGroup.alpha > 0f;
             _isInitialized = true;
         }
 
@@ -39,7 +56,7 @@ namespace Game.UI.Core
             EnsureInitialized();
             if (IsVisible) return;
 
-            IsVisible = true;
+            _isVisible = true;
             SetBlocksRaycasts(true);
             OnBeforeShow();
 
@@ -57,7 +74,7 @@ namespace Game.UI.Core
             EnsureInitialized();
             if (!IsVisible) return;
 
-            IsVisible = false;
+            _isVisible = false;
             SetInteractable(false);
             PlayHideTransition(CompleteHide);
         }
@@ -88,7 +105,7 @@ namespace Game.UI.Core
 
         private void CompleteHide()
         {
-            if (IsVisible) return;
+            if (_isVisible) return;
 
             SetBlocksRaycasts(false);
             OnViewClosed?.Invoke();
